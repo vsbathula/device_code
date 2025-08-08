@@ -48,20 +48,37 @@
 
             const validateForm = () => {
                 const isEmailValid = emailRegex.test(emailInput.value);
-                const isUserCodeValid = userCodeInput.value.trim() !== '';
+                const isUserCodeValid = userCodeInput.value.replace(/-/g, '').length === 15;
 
-                // Show/hide email error message
                 if (emailInput.value.trim() !== '' && !isEmailValid) {
                     emailErrorElement.textContent = 'Please enter a valid email address.';
                 } else {
                     emailErrorElement.textContent = '';
                 }
-
+                
                 postButton.disabled = !(isEmailValid && isUserCodeValid);
             };
 
+            const formatUserCode = (event) => {
+                let value = userCodeInput.value.replace(/-/g, ''); // Remove existing hyphens
+                
+                // Limit the length to 15 characters
+                if (value.length > 15) {
+                    value = value.substring(0, 15);
+                }
+
+                // Add hyphens every 5 characters
+                const formattedValue = value.replace(/(.{5})/g, '$1-').slice(0, -1);
+                
+                // Update the input field
+                userCodeInput.value = formattedValue;
+                
+                // Run the form validation
+                validateForm();
+            };
+
             emailInput.addEventListener('input', validateForm);
-            userCodeInput.addEventListener('input', validateForm);
+            userCodeInput.addEventListener('input', formatUserCode);
 
             postButton.addEventListener('click', async () => {
                 messageElement.textContent = '';
@@ -75,10 +92,11 @@
                 }
 
                 const url = 'https://api.prasadys.com/api/oauth2/device_authorize';
+                const userCode = userCodeInput.value.replace(/-/g, ''); // Send the code without hyphens
 
                 const body = new URLSearchParams();
                 body.append('email', emailInput.value);
-                body.append('user_code', userCodeInput.value);
+                body.append('user_code', userCode);
 
                 try {
                     const response = await fetch(url, {
