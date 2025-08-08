@@ -1,85 +1,168 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const emailInput = document.getElementById('email');
-    const userCodeInput = document.getElementById('userCode');
-    const postButton = document.getElementById('postButton');
-    const messageElement = document.getElementById('message');
-    const emailErrorElement = document.getElementById('emailError');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Device Authorization</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 300px;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      color: white;
+      background-color: #007bff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #message {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+    .validation-error {
+      color: red;
+      font-size: 0.8em;
+      text-align: left;
+      margin-top: 0.25rem;
+      height: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Link Your Device</h2>
+    <p>Please enter your email and the code shown on your TV.</p>
+    
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="text" id="email" name="email" />
+      <span id="emailError" class="validation-error"></span>
+    </div>
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    <div class="form-group">
+      <label for="userCode">User Code</label>
+      <input type="text" id="userCode" name="userCode" maxlength="15" placeholder="Enter 15 characters" />
+      <span id="userCodeError" class="validation-error"></span>
+    </div>
 
-    const validateForm = () => {
-        const isEmailValid = emailRegex.test(emailInput.value);
-        const isUserCodeValid = userCodeInput.value.replace(/-/g, '').length === 15;
+    <button id="postButton" disabled>Submit</button>
+    <p id="message"></p>
+  </div>
 
-        if (emailInput.value.trim() !== '' && !isEmailValid) {
-            emailErrorElement.textContent = 'Please enter a valid email address.';
-        } else {
-            emailErrorElement.textContent = '';
-        }
-        
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const emailInput = document.getElementById('email');
+      const userCodeInput = document.getElementById('userCode');
+      const postButton = document.getElementById('postButton');
+      const messageElement = document.getElementById('message');
+      const emailErrorElement = document.getElementById('emailError');
+      const userCodeErrorElement = document.getElementById('userCodeError');
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      const validateForm = () => {
+        const email = emailInput.value.trim();
+        const userCodeRaw = userCodeInput.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+        const isEmailValid = emailRegex.test(email);
+        const isUserCodeValid = userCodeRaw.length === 15;
+
+        emailErrorElement.textContent = isEmailValid ? '' : 'Invalid email.';
+        userCodeErrorElement.textContent = isUserCodeValid ? '' : 'Code must be 15 alphanumeric characters.';
+
         postButton.disabled = !(isEmailValid && isUserCodeValid);
-    };
+      };
 
-    const formatUserCode = (event) => {
-        // Convert the input to uppercase and remove existing hyphens
-        let value = userCodeInput.value.toUpperCase().replace(/-/g, '');
-        
-        // Limit the length to 15 characters
-        if (value.length > 15) {
-            value = value.substring(0, 15);
-        }
+      emailInput.addEventListener('input', validateForm);
+      userCodeInput.addEventListener('input', validateForm);
 
-        // Add hyphens every 5 characters
-        const formattedValue = value.replace(/(.{5})/g, '$1-').slice(0, -1);
-        
-        // Update the input field
-        userCodeInput.value = formattedValue;
-        
-        // Run the form validation
-        validateForm();
-    };
-
-    emailInput.addEventListener('input', validateForm);
-    userCodeInput.addEventListener('input', formatUserCode);
-
-    postButton.addEventListener('click', async () => {
+      postButton.addEventListener('click', async () => {
         messageElement.textContent = '';
         messageElement.className = '';
 
-        if (postButton.disabled) {
-            messageElement.textContent = 'Please enter a valid email and user code.';
-            messageElement.className = 'error';
-            return;
-        }
+        const email = emailInput.value.trim();
+        const userCodeRaw = userCodeInput.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
-        const url = 'https://prasad.com/api/oauth2/device_authorize';
-        const userCode = userCodeInput.value.replace(/-/g, '');
+        // Format as XXXXX-XXXXX-XXXXX
+        const formattedCode = `${userCodeRaw.slice(0, 5)}-${userCodeRaw.slice(5, 10)}-${userCodeRaw.slice(10, 15)}`;
+
+        const url = 'https://api.prasadys.com/api/oauth2/device_authorize';
 
         const body = new URLSearchParams();
-        body.append('email', emailInput.value);
-        body.append('user_code', userCode);
+        body.append('email', email);
+        body.append('user_code', userCodeRaw); // Send raw version (without hyphens)
 
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: body.toString()
-            });
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: body.toString()
+          });
 
-            if (response.ok) {
-                messageElement.textContent = 'Success! Your device is now linked.';
-                messageElement.className = 'success';
-            } else {
-                const errorData = await response.json();
-                messageElement.textContent = `Error: ${errorData.error_description || response.statusText}`;
-                messageElement.className = 'error';
-            }
-        } catch (error) {
-            messageElement.textContent = 'An error occurred while connecting to the server.';
+          if (response.ok) {
+            messageElement.textContent = `Success! Your device is now linked with code: ${formattedCode}`;
+            messageElement.className = 'success';
+          } else {
+            const errorData = await response.json();
+            messageElement.textContent = `Error: ${errorData.error_description || response.statusText}`;
             messageElement.className = 'error';
-            console.error('Fetch error:', error);
+          }
+        } catch (error) {
+          messageElement.textContent = 'An error occurred while connecting to the server.';
+          messageElement.className = 'error';
+          console.error('Fetch error:', error);
         }
+      });
     });
-});
+  </script>
+</body>
+</html>
