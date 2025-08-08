@@ -150,7 +150,8 @@
           });
 
           if (response.ok) {
-            messageElement.textContent = `Success! Your device is now linked with code: ${formattedCode}`;
+            const responseData = await response.json();
+            messageElement.textContent = responseData.message || 'Success! Your device is now linked.';
             messageElement.className = 'success';
           } else {
             const errorData = await response.json();
