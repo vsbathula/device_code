@@ -134,7 +134,7 @@
         // Format as XXXXX-XXXXX-XXXXX
         const formattedCode = `${userCodeRaw.slice(0, 5)}-${userCodeRaw.slice(5, 10)}-${userCodeRaw.slice(10, 15)}`;
 
-        const url = 'https://api.prasadys.com/api/oauth2/device_authorize';
+        const url = 'https://api.prasadys.com/api/oauth2/check_device';
 
         const body = new URLSearchParams();
         body.append('email', email);
